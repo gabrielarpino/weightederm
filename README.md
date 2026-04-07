@@ -14,6 +14,15 @@ It currently provides fixed- and CV-based estimators for:
 
 ## Installation
 
+### Using pip
+
+```bash
+pip install git+https://github.com/gabrielarpino/weightederm.git
+```
+
+
+### From root after cloning
+
 Install from the repository root with standard Python packaging tools:
 
 ```bash
