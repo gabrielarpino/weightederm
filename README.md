@@ -1,6 +1,7 @@
 ![weightederm header](assets/raw_marginal_plot_5.svg)
 
 # `weightederm`
+[![DOI](https://zenodo.org/badge/1204283258.svg)](https://doi.org/10.5281/zenodo.19462775)
 
 `weightederm` is a scikit-learn-style package for change point detection in regression settings via weighted empirical risk minimization (WERM).
 
