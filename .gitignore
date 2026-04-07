@@ -1,0 +1,19 @@
+# --- Python/Environment ---
+.venv/
+.python-version
+__pycache__/
+*.py[cod]
+
+# --- Build Artifacts ---
+dist/
+build/
+*.egg-info/
+
+# --- Tools & Caches ---
+.pytest_cache/
+.ruff_cache/
+.agents/
+.ipynb_checkpoints/
+
+# --- OS Specific ---
+.DS_Store

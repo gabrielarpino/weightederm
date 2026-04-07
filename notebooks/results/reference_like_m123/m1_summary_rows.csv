@@ -1,0 +1,4 @@
+experiment,method,delta_ratio,mean_hausdorff,median_hausdorff,num_trials,mean_predicted_num_chgpts,median_predicted_num_chgpts,num_infinite_hausdorff,num_nan_hausdorff,num_finite_hausdorff
+M1,WERM,8.0,0.0064375000000000005,0.006562500000000001,10,2.0,2.0,0,0,10
+M1,WERM,10.0,0.0152,0.007,10,2.0,2.0,0,0,10
+M1,WERM,12.0,0.004,0.001875,10,2.0,2.0,0,0,10
