@@ -10,7 +10,7 @@
   </a>
 </p>
 
-`weightederm` is a scikit-learn-style package for fast and accurate (offline) change point detection and estimation in regression settings via weighted empirical risk minimization (WERM).
+`weightederm` is a scikit-learn-style package for fast and accurate offline change point detection and estimation (or data segmentation) in regression settings via weighted empirical risk minimization (WERM).
 This is a robust, flexible implementation of the original research code (https://github.com/gabrielarpino/WeightedERM-reference.git) that is better suited for practical use. 
 
 It currently provides fixed- and CV-based estimators for:
