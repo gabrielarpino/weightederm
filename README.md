@@ -1,7 +1,5 @@
 # 𐄷 Weighted ERM - fast & accurate change point regression
 
----
-
 <p align="center">
   <img src="assets/raw_marginal_plot_5.svg" alt="weightederm" style="width: 100%; max-width: 800px; height: auto;">
 </p>
@@ -11,7 +9,6 @@
     <img src="https://zenodo.org/badge/1204283258.svg" alt="DOI">
   </a>
 </p>
-
 
 `weightederm` is a scikit-learn-style package for fast and accurate (offline) change point detection and estimation in regression settings via weighted empirical risk minimization (WERM).
 This is a robust, flexible implementation of the original research code (https://github.com/gabrielarpino/WeightedERM-reference.git) that is better suited for practical use. 
