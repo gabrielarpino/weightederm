@@ -45,6 +45,15 @@ uv sync
 
 This repository is already source-installable: building with `uv build` produces both an sdist and a wheel.
 
+## Documentation
+
+| Page | Contents |
+|------|----------|
+| [User Guide](docs/user_guide.md) | Algorithm overview, fixed vs CV workflow, penalties, `predict()` semantics, sklearn integration |
+| [Choosing an Estimator](docs/choosing_estimator.md) | Decision guide: which loss, fixed vs CV, `delta`, `penalty` |
+| [Parameter Reference](docs/parameter_reference.md) | Every parameter for every class with practical guidance |
+| [Fitted Attributes](docs/fitted_attributes.md) | Every post-`fit()` attribute explained |
+
 ## Quick Notes
 
 - Observations are assumed to be ordered.
