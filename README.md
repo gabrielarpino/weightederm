@@ -1,4 +1,4 @@
-# 𐄷 Weighted ERM - change point estimation in regression settings
+# 𐄷 Weighted ERM - fast & accurate change point regression
 
 ---
 
