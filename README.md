@@ -1,10 +1,20 @@
-![weightederm header](assets/raw_marginal_plot_5.svg)
+# 𐄷 Weighted ERM - change point estimation in regression settings
 
-# `weightederm`
-[![DOI](https://zenodo.org/badge/1204283258.svg)](https://doi.org/10.5281/zenodo.19462775)
+---
 
-`weightederm` is a scikit-learn-style package for change point detection in regression settings via weighted empirical risk minimization (WERM).
-This is a robust, flexible implementation of the research code (https://github.com/gabrielarpino/WeightedERM-reference.git) that is better suited for practical use. 
+<p align="center">
+  <img src="assets/raw_marginal_plot_5.svg" alt="weightederm" style="width: 100%; max-width: 800px; height: auto;">
+</p>
+
+<p align="center">
+  <a href="https://doi.org/10.5281/zenodo.19462775">
+    <img src="https://zenodo.org/badge/1204283258.svg" alt="DOI">
+  </a>
+</p>
+
+
+`weightederm` is a scikit-learn-style package for fast and accurate (offline) change point detection and estimation in regression settings via weighted empirical risk minimization (WERM).
+This is a robust, flexible implementation of the original research code (https://github.com/gabrielarpino/WeightedERM-reference.git) that is better suited for practical use. 
 
 It currently provides fixed- and CV-based estimators for:
 
@@ -181,4 +191,4 @@ print("estimated changepoint:", model.changepoints_[0])
 assert abs(int(model.changepoints_[0]) - true_cp) <= 5
 ```
 
-For fuller benchmark-style experiments, including normalized Hausdorff summaries and optional McScan comparison, see [notebooks/reference_like_m123_benchmarks.ipynb](/Users/gabrielarpino/Documents/Weighted-ERM%20packages/weightederm/notebooks/reference_like_m123_benchmarks.ipynb).
+For fuller benchmark-style experiments, including normalized Hausdorff summaries and optional McScan comparison, see [notebooks/reference_like_m123_benchmarks.ipynb](notebooks/reference_like_m123_benchmarks.ipynb).
