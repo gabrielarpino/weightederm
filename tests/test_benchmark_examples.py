@@ -1,13 +1,17 @@
 import numpy as np
 import pytest
 
+from dataclasses import replace
+
 from weightederm._benchmark_examples import (
+    ExperimentSpec,
     fit_werm_changepoints,
     fit_werm_unknown_changepoints,
     hausdorff_distance,
     maybe_run_mcscan_changepoints,
     normalized_hausdorff_distance,
     reference_like_benchmark_specs,
+    run_benchmark,
     run_benchmark_unknown,
     simulate_trial,
     summarize_trial_rows,
@@ -476,3 +480,62 @@ def test_maybe_run_mcscan_changepoints_supports_auto_mode(monkeypatch) -> None:
     assert error is None
     assert np.array_equal(result, np.array([9, 19]))
     assert calls == {"num_chgpts": None, "method": "auto"}
+
+
+# ---------------------------------------------------------------------------
+# n_jobs parallelism tests
+# Use a tiny real spec (p=10, 1 delta_ratio, 2 trials) so fitting is fast and
+# no monkeypatching is needed — avoids the multiprocessing/monkeypatch conflict.
+# ---------------------------------------------------------------------------
+
+_TINY_SPEC = ExperimentSpec(
+    name="M1",
+    p=10,
+    num_signals=2,
+    delta_ratios=(2.0,),
+    fractional_chgpt_locations=(0.5,),
+    delta_fraction=0.1,
+)
+
+_TINY_SPEC_UNKNOWN = replace(
+    reference_like_benchmark_specs()["M1"],
+    delta_ratios=(2.0,),
+)
+
+
+def test_run_benchmark_accepts_n_jobs_parameter() -> None:
+    rows, summary = run_benchmark(
+        _TINY_SPEC, num_trials=2, include_mcscan=False, base_seed=0, n_jobs=1
+    )
+    assert len(rows) == 2
+    assert len(summary) == 1
+
+
+def test_run_benchmark_parallel_produces_same_rows_as_serial() -> None:
+    rows_serial, summary_serial = run_benchmark(
+        _TINY_SPEC, num_trials=2, include_mcscan=False, base_seed=0, n_jobs=1
+    )
+    rows_parallel, summary_parallel = run_benchmark(
+        _TINY_SPEC, num_trials=2, include_mcscan=False, base_seed=0, n_jobs=2
+    )
+    assert rows_serial == rows_parallel
+    assert summary_serial == summary_parallel
+
+
+def test_run_benchmark_unknown_accepts_n_jobs_parameter() -> None:
+    rows, summary = run_benchmark_unknown(
+        _TINY_SPEC_UNKNOWN, num_trials=2, include_mcscan=False, base_seed=0, n_jobs=1
+    )
+    assert len(rows) == 2
+    assert len(summary) == 1
+
+
+def test_run_benchmark_unknown_parallel_produces_same_rows_as_serial() -> None:
+    rows_serial, summary_serial = run_benchmark_unknown(
+        _TINY_SPEC_UNKNOWN, num_trials=2, include_mcscan=False, base_seed=0, n_jobs=1
+    )
+    rows_parallel, summary_parallel = run_benchmark_unknown(
+        _TINY_SPEC_UNKNOWN, num_trials=2, include_mcscan=False, base_seed=0, n_jobs=2
+    )
+    assert rows_serial == rows_parallel
+    assert summary_serial == summary_parallel

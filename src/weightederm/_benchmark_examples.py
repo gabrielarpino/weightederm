@@ -6,6 +6,8 @@ import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
+from joblib import Parallel, delayed
+
 import numpy as np
 from scipy.spatial.distance import directed_hausdorff
 
@@ -255,6 +257,79 @@ def _run_mcscan_backend(
     return np.asarray(result[0])
 
 
+def _run_single_fixed_trial(
+    spec: ExperimentSpec,
+    delta_index: int,
+    delta_ratio: float,
+    trial_index: int,
+    base_seed: int,
+    include_mcscan: bool,
+    mcscan_mode: str,
+    least_squares_fit_solver: str,
+) -> list[dict[str, object]]:
+    seed = base_seed + 1_000 * delta_index + trial_index
+    trial = simulate_trial(spec, delta_ratio, seed)
+    rows: list[dict[str, object]] = []
+
+    try:
+        werm_cp = fit_werm_changepoints(
+            spec,
+            trial,
+            least_squares_fit_solver=least_squares_fit_solver,
+        )
+        werm_status = "ok"
+        werm_hausdorff = normalized_hausdorff_distance(
+            trial.true_changepoints,
+            werm_cp,
+            n_samples=trial.X_fit.shape[0],
+        )
+    except Exception as exc:  # noqa: BLE001
+        werm_cp = np.array([], dtype=int)
+        werm_status = f"error: {exc}"
+        werm_hausdorff = np.nan
+
+    rows.append(
+        {
+            "experiment": spec.name,
+            "method": "WERM",
+            "delta_ratio": float(delta_ratio),
+            "trial": trial_index,
+            "hausdorff": float(werm_hausdorff),
+            "status": werm_status,
+            "predicted_num_chgpts": int(np.asarray(werm_cp, dtype=int).size),
+            "estimated_changepoints": _serialize_changepoints(werm_cp),
+            "true_changepoints": _serialize_changepoints(trial.true_changepoints),
+        }
+    )
+
+    if include_mcscan and spec.name in {"M1", "M2"}:
+        mcscan_cp, mcscan_error = maybe_run_mcscan_changepoints(spec, trial, mode=mcscan_mode)
+        mcscan_hausdorff = (
+            np.nan
+            if mcscan_cp is None
+            else normalized_hausdorff_distance(
+                trial.true_changepoints,
+                mcscan_cp,
+                n_samples=trial.X_fit.shape[0],
+            )
+        )
+        rows.append(
+            {
+                "experiment": spec.name,
+                "method": "McScan",
+                "delta_ratio": float(delta_ratio),
+                "trial": trial_index,
+                "hausdorff": float(mcscan_hausdorff),
+                "status": "ok" if mcscan_error is None else f"error: {mcscan_error}",
+                "predicted_num_chgpts": 0 if mcscan_cp is None else int(mcscan_cp.size),
+                "estimated_changepoints": _serialize_changepoints(mcscan_cp),
+                "true_changepoints": _serialize_changepoints(trial.true_changepoints),
+            }
+        )
+
+    return rows
+
+
 def run_benchmark(
     spec: ExperimentSpec,
     num_trials: int,
@@ -262,75 +337,99 @@ def run_benchmark(
     base_seed: int = 42,
     mcscan_mode: str = "fixed",
     least_squares_fit_solver: str = "direct",
+    n_jobs: int = 1,
 ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    task_args = [
+        (
+            spec,
+            delta_index,
+            delta_ratio,
+            trial_index,
+            base_seed,
+            include_mcscan,
+            mcscan_mode,
+            least_squares_fit_solver,
+        )
+        for delta_index, delta_ratio in enumerate(spec.delta_ratios)
+        for trial_index in range(num_trials)
+    ]
+
+    if n_jobs == 1:
+        results = [_run_single_fixed_trial(*args) for args in task_args]
+    else:
+        results = Parallel(n_jobs=n_jobs)(
+            delayed(_run_single_fixed_trial)(*args) for args in task_args
+        )
+
+    rows = [row for trial_rows in results for row in trial_rows]
+    return rows, summarize_trial_rows(rows)
+
+
+def _run_single_unknown_trial(
+    spec: ExperimentSpec,
+    delta_index: int,
+    delta_ratio: float,
+    trial_index: int,
+    base_seed: int,
+    include_mcscan: bool,
+) -> list[dict[str, object]]:
+    seed = base_seed + 1_000 * delta_index + trial_index
+    trial = simulate_trial(spec, delta_ratio, seed)
     rows: list[dict[str, object]] = []
 
-    for delta_index, delta_ratio in enumerate(spec.delta_ratios):
-        for trial_index in range(num_trials):
-            seed = base_seed + 1_000 * delta_index + trial_index
-            trial = simulate_trial(spec, delta_ratio, seed)
+    try:
+        werm_cp = fit_werm_unknown_changepoints(spec, trial)
+        werm_status = "ok"
+        werm_hausdorff = normalized_hausdorff_distance(
+            trial.true_changepoints,
+            werm_cp,
+            n_samples=trial.X_fit.shape[0],
+        )
+    except Exception as exc:  # noqa: BLE001
+        werm_cp = np.array([], dtype=int)
+        werm_status = f"error: {exc}"
+        werm_hausdorff = np.nan
 
-            try:
-                werm_cp = fit_werm_changepoints(
-                    spec,
-                    trial,
-                    least_squares_fit_solver=least_squares_fit_solver,
-                )
-                werm_status = "ok"
-                werm_hausdorff = normalized_hausdorff_distance(
-                    trial.true_changepoints,
-                    werm_cp,
-                    n_samples=trial.X_fit.shape[0],
-                )
-            except Exception as exc:  # noqa: BLE001
-                werm_cp = np.array([], dtype=int)
-                werm_status = f"error: {exc}"
-                werm_hausdorff = np.nan
+    rows.append(
+        {
+            "experiment": spec.name,
+            "method": "WERM",
+            "delta_ratio": float(delta_ratio),
+            "trial": trial_index,
+            "hausdorff": float(werm_hausdorff),
+            "status": werm_status,
+            "predicted_num_chgpts": int(np.asarray(werm_cp, dtype=int).size),
+            "estimated_changepoints": _serialize_changepoints(werm_cp),
+            "true_changepoints": _serialize_changepoints(trial.true_changepoints),
+        }
+    )
 
-            rows.append(
-                {
-                    "experiment": spec.name,
-                    "method": "WERM",
-                    "delta_ratio": float(delta_ratio),
-                    "trial": trial_index,
-                    "hausdorff": float(werm_hausdorff),
-                    "status": werm_status,
-                    "predicted_num_chgpts": int(np.asarray(werm_cp, dtype=int).size),
-                    "estimated_changepoints": _serialize_changepoints(werm_cp),
-                    "true_changepoints": _serialize_changepoints(trial.true_changepoints),
-                }
+    if include_mcscan and spec.name in {"M1", "M2"}:
+        mcscan_cp, mcscan_error = maybe_run_mcscan_changepoints(spec, trial, mode="auto")
+        mcscan_hausdorff = (
+            np.nan
+            if mcscan_cp is None
+            else normalized_hausdorff_distance(
+                trial.true_changepoints,
+                mcscan_cp,
+                n_samples=trial.X_fit.shape[0],
             )
+        )
+        rows.append(
+            {
+                "experiment": spec.name,
+                "method": "McScan",
+                "delta_ratio": float(delta_ratio),
+                "trial": trial_index,
+                "hausdorff": float(mcscan_hausdorff),
+                "status": "ok" if mcscan_error is None else f"error: {mcscan_error}",
+                "predicted_num_chgpts": 0 if mcscan_cp is None else int(mcscan_cp.size),
+                "estimated_changepoints": _serialize_changepoints(mcscan_cp),
+                "true_changepoints": _serialize_changepoints(trial.true_changepoints),
+            }
+        )
 
-            if include_mcscan and spec.name in {"M1", "M2"}:
-                mcscan_cp, mcscan_error = maybe_run_mcscan_changepoints(
-                    spec,
-                    trial,
-                    mode=mcscan_mode,
-                )
-                mcscan_hausdorff = (
-                    np.nan
-                    if mcscan_cp is None
-                    else normalized_hausdorff_distance(
-                        trial.true_changepoints,
-                        mcscan_cp,
-                        n_samples=trial.X_fit.shape[0],
-                    )
-                )
-                rows.append(
-                    {
-                        "experiment": spec.name,
-                        "method": "McScan",
-                        "delta_ratio": float(delta_ratio),
-                        "trial": trial_index,
-                        "hausdorff": float(mcscan_hausdorff),
-                        "status": "ok" if mcscan_error is None else f"error: {mcscan_error}",
-                        "predicted_num_chgpts": 0 if mcscan_cp is None else int(mcscan_cp.size),
-                        "estimated_changepoints": _serialize_changepoints(mcscan_cp),
-                        "true_changepoints": _serialize_changepoints(trial.true_changepoints),
-                    }
-                )
-
-    return rows, summarize_trial_rows(rows)
+    return rows
 
 
 def run_benchmark_unknown(
@@ -338,66 +437,22 @@ def run_benchmark_unknown(
     num_trials: int,
     include_mcscan: bool = False,
     base_seed: int = 42,
+    n_jobs: int = 1,
 ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
-    rows: list[dict[str, object]] = []
+    task_args = [
+        (spec, delta_index, delta_ratio, trial_index, base_seed, include_mcscan)
+        for delta_index, delta_ratio in enumerate(spec.delta_ratios)
+        for trial_index in range(num_trials)
+    ]
 
-    for delta_index, delta_ratio in enumerate(spec.delta_ratios):
-        for trial_index in range(num_trials):
-            seed = base_seed + 1_000 * delta_index + trial_index
-            trial = simulate_trial(spec, delta_ratio, seed)
+    if n_jobs == 1:
+        results = [_run_single_unknown_trial(*args) for args in task_args]
+    else:
+        results = Parallel(n_jobs=n_jobs)(
+            delayed(_run_single_unknown_trial)(*args) for args in task_args
+        )
 
-            try:
-                werm_cp = fit_werm_unknown_changepoints(spec, trial)
-                werm_status = "ok"
-                werm_hausdorff = normalized_hausdorff_distance(
-                    trial.true_changepoints,
-                    werm_cp,
-                    n_samples=trial.X_fit.shape[0],
-                )
-            except Exception as exc:  # noqa: BLE001
-                werm_cp = np.array([], dtype=int)
-                werm_status = f"error: {exc}"
-                werm_hausdorff = np.nan
-
-            rows.append(
-                {
-                    "experiment": spec.name,
-                    "method": "WERM",
-                    "delta_ratio": float(delta_ratio),
-                    "trial": trial_index,
-                    "hausdorff": float(werm_hausdorff),
-                    "status": werm_status,
-                    "predicted_num_chgpts": int(np.asarray(werm_cp, dtype=int).size),
-                    "estimated_changepoints": _serialize_changepoints(werm_cp),
-                    "true_changepoints": _serialize_changepoints(trial.true_changepoints),
-                }
-            )
-
-            if include_mcscan and spec.name in {"M1", "M2"}:
-                mcscan_cp, mcscan_error = maybe_run_mcscan_changepoints(spec, trial, mode="auto")
-                mcscan_hausdorff = (
-                    np.nan
-                    if mcscan_cp is None
-                    else normalized_hausdorff_distance(
-                        trial.true_changepoints,
-                        mcscan_cp,
-                        n_samples=trial.X_fit.shape[0],
-                    )
-                )
-                rows.append(
-                    {
-                        "experiment": spec.name,
-                        "method": "McScan",
-                        "delta_ratio": float(delta_ratio),
-                        "trial": trial_index,
-                        "hausdorff": float(mcscan_hausdorff),
-                        "status": "ok" if mcscan_error is None else f"error: {mcscan_error}",
-                        "predicted_num_chgpts": 0 if mcscan_cp is None else int(mcscan_cp.size),
-                        "estimated_changepoints": _serialize_changepoints(mcscan_cp),
-                        "true_changepoints": _serialize_changepoints(trial.true_changepoints),
-                    }
-                )
-
+    rows = [row for trial_rows in results for row in trial_rows]
     return rows, summarize_trial_rows(rows)
 
 
