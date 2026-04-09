@@ -501,6 +501,26 @@ def summarize_trial_rows(rows: list[dict[str, object]]) -> list[dict[str, object
             if not np.all(np.isnan(predicted_counts))
             else np.nan
         )
+        p25_value = (
+            float(np.nanpercentile(summary_values, 25))
+            if not np.all(np.isnan(summary_values))
+            else np.nan
+        )
+        p75_value = (
+            float(np.nanpercentile(summary_values, 75))
+            if not np.all(np.isnan(summary_values))
+            else np.nan
+        )
+        p25_predicted = (
+            float(np.nanpercentile(predicted_counts, 25))
+            if not np.all(np.isnan(predicted_counts))
+            else np.nan
+        )
+        p75_predicted = (
+            float(np.nanpercentile(predicted_counts, 75))
+            if not np.all(np.isnan(predicted_counts))
+            else np.nan
+        )
         if num_finite_hausdorff == 0:
             if (
                 num_infinite_hausdorff > 0
@@ -533,9 +553,13 @@ def summarize_trial_rows(rows: list[dict[str, object]]) -> list[dict[str, object
                 "delta_ratio": delta_ratio,
                 "mean_hausdorff": mean_value,
                 "median_hausdorff": median_value,
+                "p25_hausdorff": p25_value,
+                "p75_hausdorff": p75_value,
                 "num_trials": int(values.size),
                 "mean_predicted_num_chgpts": mean_predicted_num_chgpts,
                 "median_predicted_num_chgpts": median_predicted_num_chgpts,
+                "p25_predicted_num_chgpts": p25_predicted,
+                "p75_predicted_num_chgpts": p75_predicted,
                 "num_infinite_hausdorff": num_infinite_hausdorff,
                 "num_nan_hausdorff": num_nan_hausdorff,
                 "num_finite_hausdorff": num_finite_hausdorff,
@@ -591,6 +615,91 @@ def plot_hausdorff_summary(
     ax.legend()
     ax.grid(alpha=0.25)
     return fig, ax
+
+
+def plot_hausdorff_summary_with_percentiles(
+    summary_rows: list[dict[str, object]],
+    experiment_name: str,
+):
+    import matplotlib.pyplot as plt
+
+    filtered = [row for row in summary_rows if row["experiment"] == experiment_name]
+    if not filtered:
+        raise ValueError(f"No summary rows found for experiment {experiment_name}.")
+
+    fig, (ax_h, ax_n) = plt.subplots(1, 2, figsize=(12, 4))
+    methods = sorted({str(row["method"]) for row in filtered})
+
+    for method in methods:
+        method_rows = [
+            row
+            for row in filtered
+            if row["method"] == method and np.isfinite(row["mean_hausdorff"])
+        ]
+        method_rows.sort(key=lambda row: float(row["delta_ratio"]))
+        if not method_rows:
+            continue
+        delta_ratios = [float(row["delta_ratio"]) for row in method_rows]
+        means = [float(row["mean_hausdorff"]) for row in method_rows]
+        yerr_lo = [
+            float(row["mean_hausdorff"]) - float(row["p25_hausdorff"])
+            for row in method_rows
+        ]
+        yerr_hi = [
+            float(row["p75_hausdorff"]) - float(row["mean_hausdorff"])
+            for row in method_rows
+        ]
+        ax_h.errorbar(
+            delta_ratios,
+            means,
+            yerr=[yerr_lo, yerr_hi],
+            marker="o",
+            label=method,
+            capsize=3,
+        )
+
+    ax_h.set_title(f"{experiment_name}: mean Hausdorff distance")
+    ax_h.set_xlabel(r"$\delta = n/p$")
+    ax_h.set_ylabel("Hausdorff distance")
+    ax_h.legend()
+    ax_h.grid(alpha=0.25)
+
+    for method in methods:
+        method_rows = [
+            row
+            for row in filtered
+            if row["method"] == method
+            and not np.isnan(float(row["mean_predicted_num_chgpts"]))
+        ]
+        method_rows.sort(key=lambda row: float(row["delta_ratio"]))
+        if not method_rows:
+            continue
+        delta_ratios = [float(row["delta_ratio"]) for row in method_rows]
+        means = [float(row["mean_predicted_num_chgpts"]) for row in method_rows]
+        yerr_lo = [
+            float(row["mean_predicted_num_chgpts"]) - float(row["p25_predicted_num_chgpts"])
+            for row in method_rows
+        ]
+        yerr_hi = [
+            float(row["p75_predicted_num_chgpts"]) - float(row["mean_predicted_num_chgpts"])
+            for row in method_rows
+        ]
+        ax_n.errorbar(
+            delta_ratios,
+            means,
+            yerr=[yerr_lo, yerr_hi],
+            marker="o",
+            label=method,
+            capsize=3,
+        )
+
+    ax_n.set_title(f"{experiment_name}: estimated number of changepoints")
+    ax_n.set_xlabel(r"$\delta = n/p$")
+    ax_n.set_ylabel("number of changepoints")
+    ax_n.legend()
+    ax_n.grid(alpha=0.25)
+
+    return fig, (ax_h, ax_n)
 
 
 def _serialize_changepoints(changepoints: np.ndarray | None) -> str:

@@ -1,8 +1,6 @@
 # 𐄷 Weighted ERM - fast & accurate change point regression
 
-<p align="center">
-  <img src="assets/raw_marginal_plot_5.svg" alt="weightederm" style="width: 100%; max-width: 800px; height: auto;">
-</p>
+![weightederm header](assets/raw_marginal_plot_5.svg)
 
 <p align="center">
   <a href="https://doi.org/10.5281/zenodo.19462775">

@@ -10,6 +10,7 @@ from weightederm._benchmark_examples import (
     hausdorff_distance,
     maybe_run_mcscan_changepoints,
     normalized_hausdorff_distance,
+    plot_hausdorff_summary_with_percentiles,
     reference_like_benchmark_specs,
     run_benchmark,
     run_benchmark_unknown,
@@ -117,9 +118,13 @@ def test_summarize_trial_rows_groups_by_experiment_method_and_delta() -> None:
             "delta_ratio": 1.0,
             "mean_hausdorff": 3.0,
             "median_hausdorff": 3.0,
+            "p25_hausdorff": 3.0,
+            "p75_hausdorff": 3.0,
             "num_trials": 1,
             "mean_predicted_num_chgpts": 2.0,
             "median_predicted_num_chgpts": 2.0,
+            "p25_predicted_num_chgpts": 2.0,
+            "p75_predicted_num_chgpts": 2.0,
             "num_infinite_hausdorff": 0,
             "num_nan_hausdorff": 0,
             "num_finite_hausdorff": 1,
@@ -130,9 +135,13 @@ def test_summarize_trial_rows_groups_by_experiment_method_and_delta() -> None:
             "delta_ratio": 1.0,
             "mean_hausdorff": 3.0,
             "median_hausdorff": 3.0,
+            "p25_hausdorff": 2.5,
+            "p75_hausdorff": 3.5,
             "num_trials": 2,
             "mean_predicted_num_chgpts": 1.5,
             "median_predicted_num_chgpts": 1.5,
+            "p25_predicted_num_chgpts": 1.25,
+            "p75_predicted_num_chgpts": 1.75,
             "num_infinite_hausdorff": 0,
             "num_nan_hausdorff": 0,
             "num_finite_hausdorff": 2,
@@ -143,9 +152,13 @@ def test_summarize_trial_rows_groups_by_experiment_method_and_delta() -> None:
             "delta_ratio": 2.0,
             "mean_hausdorff": 1.0,
             "median_hausdorff": 1.0,
+            "p25_hausdorff": 1.0,
+            "p75_hausdorff": 1.0,
             "num_trials": 1,
             "mean_predicted_num_chgpts": 2.0,
             "median_predicted_num_chgpts": 2.0,
+            "p25_predicted_num_chgpts": 2.0,
+            "p75_predicted_num_chgpts": 2.0,
             "num_infinite_hausdorff": 0,
             "num_nan_hausdorff": 0,
             "num_finite_hausdorff": 1,
@@ -187,9 +200,13 @@ def test_summarize_trial_rows_uses_nanmean_style_aggregation() -> None:
             "delta_ratio": 1.0,
             "mean_hausdorff": np.nan,
             "median_hausdorff": np.nan,
+            "p25_hausdorff": np.nan,
+            "p75_hausdorff": np.nan,
             "num_trials": 1,
             "mean_predicted_num_chgpts": 0.0,
             "median_predicted_num_chgpts": 0.0,
+            "p25_predicted_num_chgpts": 0.0,
+            "p75_predicted_num_chgpts": 0.0,
             "num_infinite_hausdorff": 1,
             "num_nan_hausdorff": 0,
             "num_finite_hausdorff": 0,
@@ -200,9 +217,13 @@ def test_summarize_trial_rows_uses_nanmean_style_aggregation() -> None:
             "delta_ratio": 1.0,
             "mean_hausdorff": 4.0,
             "median_hausdorff": 4.0,
+            "p25_hausdorff": 4.0,
+            "p75_hausdorff": 4.0,
             "num_trials": 2,
             "mean_predicted_num_chgpts": 1.0,
             "median_predicted_num_chgpts": 1.0,
+            "p25_predicted_num_chgpts": 0.5,
+            "p75_predicted_num_chgpts": 1.5,
             "num_infinite_hausdorff": 0,
             "num_nan_hausdorff": 1,
             "num_finite_hausdorff": 1,
@@ -244,9 +265,13 @@ def test_summarize_trial_rows_ignores_infinite_hausdorff_values_like_reference_p
             "delta_ratio": 1.0,
             "mean_hausdorff": 0.30000000000000004,
             "median_hausdorff": 0.30000000000000004,
+            "p25_hausdorff": 0.25,
+            "p75_hausdorff": 0.35000000000000003,
             "num_trials": 3,
             "mean_predicted_num_chgpts": 1.0,
             "median_predicted_num_chgpts": 1.0,
+            "p25_predicted_num_chgpts": 0.5,
+            "p75_predicted_num_chgpts": 1.5,
             "num_infinite_hausdorff": 1,
             "num_nan_hausdorff": 0,
             "num_finite_hausdorff": 2,
@@ -279,7 +304,11 @@ def test_summarize_trial_rows_warns_when_all_trials_predict_zero_changepoints() 
         summary = summarize_trial_rows(rows)
 
     assert np.isnan(summary[0]["mean_hausdorff"])
+    assert np.isnan(summary[0]["p25_hausdorff"])
+    assert np.isnan(summary[0]["p75_hausdorff"])
     assert summary[0]["mean_predicted_num_chgpts"] == 0.0
+    assert summary[0]["p25_predicted_num_chgpts"] == 0.0
+    assert summary[0]["p75_predicted_num_chgpts"] == 0.0
 
 
 def test_fit_werm_changepoints_uses_fixed_least_squares_estimator(monkeypatch) -> None:
@@ -539,3 +568,85 @@ def test_run_benchmark_unknown_parallel_produces_same_rows_as_serial() -> None:
     )
     assert rows_serial == rows_parallel
     assert summary_serial == summary_parallel
+
+
+# ---------------------------------------------------------------------------
+# plot_hausdorff_summary_with_percentiles tests
+# ---------------------------------------------------------------------------
+
+def _make_summary_rows_with_percentiles() -> list[dict]:
+    return [
+        {
+            "experiment": "M1",
+            "method": "WERM",
+            "delta_ratio": 2.0,
+            "mean_hausdorff": 0.3,
+            "median_hausdorff": 0.3,
+            "p25_hausdorff": 0.2,
+            "p75_hausdorff": 0.4,
+            "num_trials": 5,
+            "mean_predicted_num_chgpts": 1.8,
+            "median_predicted_num_chgpts": 2.0,
+            "p25_predicted_num_chgpts": 1.5,
+            "p75_predicted_num_chgpts": 2.0,
+            "num_infinite_hausdorff": 0,
+            "num_nan_hausdorff": 0,
+            "num_finite_hausdorff": 5,
+        },
+        {
+            "experiment": "M1",
+            "method": "WERM",
+            "delta_ratio": 4.0,
+            "mean_hausdorff": 0.1,
+            "median_hausdorff": 0.1,
+            "p25_hausdorff": 0.05,
+            "p75_hausdorff": 0.15,
+            "num_trials": 5,
+            "mean_predicted_num_chgpts": 2.0,
+            "median_predicted_num_chgpts": 2.0,
+            "p25_predicted_num_chgpts": 2.0,
+            "p75_predicted_num_chgpts": 2.0,
+            "num_infinite_hausdorff": 0,
+            "num_nan_hausdorff": 0,
+            "num_finite_hausdorff": 5,
+        },
+        {
+            "experiment": "M2",
+            "method": "WERM",
+            "delta_ratio": 2.0,
+            "mean_hausdorff": 0.2,
+            "median_hausdorff": 0.2,
+            "p25_hausdorff": 0.1,
+            "p75_hausdorff": 0.3,
+            "num_trials": 5,
+            "mean_predicted_num_chgpts": 3.0,
+            "median_predicted_num_chgpts": 3.0,
+            "p25_predicted_num_chgpts": 3.0,
+            "p75_predicted_num_chgpts": 3.0,
+            "num_infinite_hausdorff": 0,
+            "num_nan_hausdorff": 0,
+            "num_finite_hausdorff": 5,
+        },
+    ]
+
+
+def test_plot_hausdorff_summary_with_percentiles_returns_fig_and_two_axes() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+
+    summary_rows = _make_summary_rows_with_percentiles()
+    fig, axes = plot_hausdorff_summary_with_percentiles(summary_rows, "M1")
+
+    assert len(axes) == 2
+    ax_hausdorff, ax_num_chgpts = axes
+    assert ax_hausdorff.get_xlabel() != ""
+    assert ax_num_chgpts.get_xlabel() != ""
+
+
+def test_plot_hausdorff_summary_with_percentiles_raises_for_unknown_experiment() -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+
+    summary_rows = _make_summary_rows_with_percentiles()
+    with pytest.raises(ValueError, match="No summary rows"):
+        plot_hausdorff_summary_with_percentiles(summary_rows, "M9")
