@@ -641,14 +641,22 @@ def plot_hausdorff_summary_with_percentiles(
             continue
         delta_ratios = [float(row["delta_ratio"]) for row in method_rows]
         means = [float(row["mean_hausdorff"]) for row in method_rows]
-        yerr_lo = [
-            float(row["mean_hausdorff"]) - float(row["p25_hausdorff"])
-            for row in method_rows
-        ]
-        yerr_hi = [
-            float(row["p75_hausdorff"]) - float(row["mean_hausdorff"])
-            for row in method_rows
-        ]
+        yerr_lo = np.clip(
+            np.nan_to_num(
+                [float(row["mean_hausdorff"]) - float(row["p25_hausdorff"]) for row in method_rows],
+                nan=0.0,
+            ),
+            0,
+            None,
+        )
+        yerr_hi = np.clip(
+            np.nan_to_num(
+                [float(row["p75_hausdorff"]) - float(row["mean_hausdorff"]) for row in method_rows],
+                nan=0.0,
+            ),
+            0,
+            None,
+        )
         ax_h.errorbar(
             delta_ratios,
             means,
@@ -676,14 +684,28 @@ def plot_hausdorff_summary_with_percentiles(
             continue
         delta_ratios = [float(row["delta_ratio"]) for row in method_rows]
         means = [float(row["mean_predicted_num_chgpts"]) for row in method_rows]
-        yerr_lo = [
-            float(row["mean_predicted_num_chgpts"]) - float(row["p25_predicted_num_chgpts"])
-            for row in method_rows
-        ]
-        yerr_hi = [
-            float(row["p75_predicted_num_chgpts"]) - float(row["mean_predicted_num_chgpts"])
-            for row in method_rows
-        ]
+        yerr_lo = np.clip(
+            np.nan_to_num(
+                [
+                    float(row["mean_predicted_num_chgpts"]) - float(row["p25_predicted_num_chgpts"])
+                    for row in method_rows
+                ],
+                nan=0.0,
+            ),
+            0,
+            None,
+        )
+        yerr_hi = np.clip(
+            np.nan_to_num(
+                [
+                    float(row["p75_predicted_num_chgpts"]) - float(row["mean_predicted_num_chgpts"])
+                    for row in method_rows
+                ],
+                nan=0.0,
+            ),
+            0,
+            None,
+        )
         ax_n.errorbar(
             delta_ratios,
             means,
