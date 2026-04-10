@@ -1,4 +1,11 @@
-experiment,method,delta_ratio,mean_hausdorff,median_hausdorff,num_trials,mean_predicted_num_chgpts,median_predicted_num_chgpts,num_infinite_hausdorff,num_nan_hausdorff,num_finite_hausdorff
-M1,WERM,8.0,0.009375,0.009375,10,0.2,0.0,9,0,1
-M1,WERM,10.0,0.15175,0.1515,10,0.6,0.0,6,0,4
-M1,WERM,12.0,0.037129629629629624,0.0020833333333333333,10,1.7,2.0,1,0,9
+experiment,method,delta_ratio,mean_hausdorff,median_hausdorff,p25_hausdorff,p75_hausdorff,num_trials,mean_predicted_num_chgpts,median_predicted_num_chgpts,p25_predicted_num_chgpts,p75_predicted_num_chgpts,num_infinite_hausdorff,num_nan_hausdorff,num_finite_hausdorff
+M1,WERM,1.0,0.4541666666666666,0.4625,0.35624999999999996,0.55875,30,1.3333333333333333,1.0,1.0,2.0,0,0,30
+M1,WERM,2.0,nan,nan,nan,nan,30,0.0,0.0,0.0,0.0,30,0,0
+M1,WERM,3.0,nan,nan,nan,nan,30,0.0,0.0,0.0,0.0,30,0,0
+M1,WERM,4.0,nan,nan,nan,nan,30,0.0,0.0,0.0,0.0,30,0,0
+M1,WERM,5.0,nan,nan,nan,nan,30,0.0,0.0,0.0,0.0,30,0,0
+M1,WERM,6.0,nan,nan,nan,nan,30,0.0,0.0,0.0,0.0,30,0,0
+M1,WERM,7.0,0.29285714285714287,0.29285714285714287,0.29285714285714287,0.29285714285714287,30,0.06666666666666667,0.0,0.0,0.0,28,0,2
+M1,WERM,8.0,0.2946875,0.2946875,0.29265625,0.29671875000000003,30,0.06666666666666667,0.0,0.0,0.0,28,0,2
+M1,WERM,9.0,0.2669444444444445,0.2644444444444445,0.25666666666666665,0.27472222222222226,30,0.13333333333333333,0.0,0.0,0.0,26,0,4
+M1,WERM,10.0,0.17282352941176468,0.272,0.006,0.2945,30,0.8,1.0,0.0,1.0,13,0,17
