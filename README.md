@@ -1,13 +1,10 @@
 # 𐄷 Weighted ERM - fast & accurate change point regression
 
 ![weightederm header](assets/raw_marginal_plot_5.svg)
-[![arXiv](https://img.shields.io/badge/arXiv-2604.11746-b31b1b.svg)](https://arxiv.org/abs/2604.11746)
-
 
 <p align="center">
-  <a href="https://doi.org/10.5281/zenodo.19462775">
-    <img src="https://zenodo.org/badge/1204283258.svg" alt="DOI">
-  </a>
+  <a href="https://arxiv.org/abs/2604.11746"><img src="https://img.shields.io/badge/arXiv-2604.11746-b31b1b.svg" alt="arXiv"></a>
+  <a href="https://doi.org/10.5281/zenodo.19462775"><img src="https://zenodo.org/badge/1204283258.svg" alt="DOI"></a>
 </p>
 
 
